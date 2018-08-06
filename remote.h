@@ -1,7 +1,11 @@
 #ifndef EVENT_LOOP_REMOTE_H
 #define EVENT_LOOP_REMOTE_H
 
-typedef int remote_fildes_t;
+#define remote_READABLE (1 << 1)
+#define remote_WRITABLE (1 << 2)
+#define remote_EXCEPTION (1 << 3)
+
+typedef int remote_fd_t;
 typedef void* remote_client_data;
 
 void remote_prepare(char *name);

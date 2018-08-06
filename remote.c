@@ -21,11 +21,12 @@
 
 #include "remote.h"
 #include "event-loop.h"
+#include "server.h"
 
 #define INVALID_DESCRIPTOR -1
 
-remote_fildes_t remote_desc = INVALID_DESCRIPTOR;
-remote_fildes_t listen_desc = INVALID_DESCRIPTOR;
+remote_fd_t remote_desc = INVALID_DESCRIPTOR;
+remote_fd_t listen_desc = INVALID_DESCRIPTOR;
 
 static int socket_read(void *buf, int count);
 static int socket_write(const void *buf, int count);
@@ -84,7 +85,7 @@ void remote_open(char *name)
     fprintf(stderr, "Listening port %d\n", port);
     fflush(stderr);
 
-    add_fd_handler(listen_desc, handle_accept_event, NULL);
+    create_fd_handler(listen_desc, remote_READABLE | remote_EXCEPTION, handle_accept_event, NULL);
 }
 
 void remote_close(void)
