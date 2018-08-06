@@ -1,6 +1,6 @@
 
-#ifndef EVENT_LOOP_QUEUE_H
-#define EVENT_LOOP_QUEUE_H
+#ifndef QUEUE_H
+#define QUEUE_H
 
 /* These macros implement functions and structs for a general queue.
    Macro 'DEFINE_QUEUE_P(TYPEDEF)' is to define the new queue type for
@@ -279,4 +279,4 @@ extern void							\
   queue_ ## TYPE ## _remove_elem (QUEUE (TYPE) *q,		\
 				  QUEUE_ITER (TYPE) *iter);	\
 
-#endif /* EVENT_LOOP_QUEUE_H */
+#endif /* QUEUE_H */
