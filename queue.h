@@ -14,9 +14,9 @@
    {} *foo_p;
 
    DEFINE_QUEUE_P (foo_p);
-   // A pointer to a queue of foo pointers.  FOO_XFREE is a destructor
+   // A pointer to a queue of foo pointers.  FOO_free is a destructor
    // function for foo instances in queue.
-   QUEUE(foo_p) *foo_queue = QUEUE_alloc (foo_p, foo_xfree);
+   QUEUE(foo_p) *foo_queue = QUEUE_alloc (foo_p, foo_free);
 
    foo_p foo_var_p;
    // Enqueue and Dequeue
@@ -108,9 +108,9 @@ void									\
 queue_ ## TYPE ## _enque (QUEUE (TYPE) *q, TYPE v)			\
 {									\
   QUEUE_ELEM (TYPE) *p							\
-    = xmalloc (sizeof (QUEUE_ELEM (TYPE)));				\
+    = malloc (sizeof (QUEUE_ELEM (TYPE)));				\
 									\
-  gdb_assert (q != NULL);						\
+  assert (q != NULL);						\
   p->data = v;								\
   p->next = NULL;							\
   if (q->tail == NULL)							\
@@ -131,9 +131,9 @@ queue_ ## TYPE ## _deque (QUEUE (TYPE) *q)				\
   QUEUE_ELEM (TYPE) *p;						\
   TYPE v;								\
 									\
-  gdb_assert (q != NULL);						\
+  assert (q != NULL);						\
   p = q->head;								\
-  gdb_assert (p != NULL);						\
+  assert (p != NULL);						\
 									\
   if (q->head == q->tail)						\
     {									\
@@ -145,22 +145,22 @@ queue_ ## TYPE ## _deque (QUEUE (TYPE) *q)				\
 									\
   v = p->data;								\
 									\
-  xfree (p);								\
+  free (p);								\
   return v;								\
 }									\
 									\
 TYPE									\
 queue_ ## TYPE ## _peek (QUEUE (TYPE) *q)				\
 {									\
-  gdb_assert (q != NULL);						\
-  gdb_assert (q->head != NULL);					\
+  assert (q != NULL);						\
+  assert (q->head != NULL);					\
   return q->head->data;						\
 }									\
 									\
 int									\
 queue_ ## TYPE ## _is_empty (QUEUE (TYPE) *q)				\
 {									\
-  gdb_assert (q != NULL);						\
+  assert (q != NULL);						\
   return q->head == NULL;						\
 }									\
 									\
@@ -168,8 +168,8 @@ void									\
 queue_ ## TYPE ## _remove_elem (QUEUE (TYPE) *q,			\
 				QUEUE_ITER (TYPE) *iter)		\
 {									\
-  gdb_assert (q != NULL);						\
-  gdb_assert (iter != NULL && iter->p != NULL);			\
+  assert (q != NULL);						\
+  assert (iter != NULL && iter->p != NULL);			\
 									\
   if (iter->p == q->head || iter->p == q->tail)			\
     {									\
@@ -181,7 +181,7 @@ queue_ ## TYPE ## _remove_elem (QUEUE (TYPE) *q,			\
   else									\
     iter->prev->next = iter->p->next;					\
 									\
-  xfree (iter->p);							\
+  free (iter->p);							\
   /* Indicate that ITER->p has been deleted from QUEUE q.  */		\
   iter->p = NULL;							\
 }									\
@@ -194,7 +194,7 @@ queue_ ## TYPE ## _iterate (QUEUE (TYPE) *q,				\
   QUEUE_ELEM (TYPE) *next = NULL;					\
   QUEUE_ITER (TYPE) iter = { NULL, NULL };				\
 									\
-  gdb_assert (q != NULL);						\
+  assert (q != NULL);						\
 									\
   for (iter.p = q->head; iter.p != NULL; iter.p = next)		\
     {									\
@@ -213,7 +213,7 @@ queue_ ## TYPE ## _alloc (void (*free_func) (TYPE))			\
 {									\
   QUEUE (TYPE) *q;							\
 									\
-  q = (QUEUE (TYPE) *) xmalloc (sizeof (QUEUE (TYPE)));		\
+  q = (QUEUE (TYPE) *) malloc (sizeof (QUEUE (TYPE)));		\
   q->head = NULL;							\
   q->tail = NULL;							\
   q->free_func = free_func;						\
@@ -226,7 +226,7 @@ queue_ ## TYPE ## _length (QUEUE (TYPE) *q)				\
   QUEUE_ELEM (TYPE) *p;						\
   int len = 0;								\
 									\
-  gdb_assert (q != NULL);						\
+  assert (q != NULL);						\
 									\
   for (p = q->head; p != NULL; p = p->next)				\
     len++;								\
@@ -239,16 +239,16 @@ queue_ ## TYPE ## _free (QUEUE (TYPE) *q)				\
 {									\
   QUEUE_ELEM (TYPE) *p, *next;						\
 									\
-  gdb_assert (q != NULL);						\
+  assert (q != NULL);						\
 									\
   for (p = q->head; p != NULL; p = next)				\
     {									\
       next = p->next;							\
       if (q->free_func)						\
 	q->free_func (p->data);					\
-      xfree (p);							\
+      free (p);							\
     }									\
-  xfree (q);								\
+  free (q);								\
 }									\
 
 /* External declarations for queue functions.  */
