@@ -25,13 +25,35 @@
 
 #define INVALID_DESCRIPTOR -1
 
-remote_fd_t remote_desc = INVALID_DESCRIPTOR;
-remote_fd_t listen_desc = INVALID_DESCRIPTOR;
+int remote_desc = INVALID_DESCRIPTOR;
+int listen_desc = INVALID_DESCRIPTOR;
 
 static int socket_read(void *buf, int count);
 static int socket_write(const void *buf, int count);
 
-static int handle_accept_event(remote_client_data client_data);
+static int handle_accept_event(int err, void *client_data) {
+  struct sockaddr_in sockaddr;
+  socklen_t tmp;
+
+  tmp = sizeof(sockaddr);
+  remote_desc = accept(listen_desc, (struct sockaddr *)&sockaddr, &tmp);
+  if (remote_desc == -1) perror("Accept failed");
+
+  // keep alive
+  tmp = 1;
+  setsockopt(remote_desc, SOL_SOCKET, SO_KEEPALIVE, (char *)&tmp, sizeof(tmp));
+
+  tmp = 1;
+  setsockopt(remote_desc, IPPROTO_TCP, TCP_NODELAY, (char *)&tmp, sizeof(tmp));
+
+  signal(SIGPIPE, SIG_IGN); 
+  delete_fd_handler(listen_desc);
+
+  fprintf(stderr, "Remote Connect from %s\n", inet_ntoa(sockaddr.sin_addr));
+
+  create_fd_handler(remote_desc,  remote_READABLE | remote_EXCEPTION, handle_serial_event, NULL);
+  return 0;
+}
 
 void remote_prepare(char *name)
 {
