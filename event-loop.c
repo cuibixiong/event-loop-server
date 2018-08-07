@@ -7,23 +7,23 @@
 #include "queue.h"
 
 typedef struct remote_event remote_event;
-typedef int(event_handler_func)(remote_fd_t);
+typedef int(event_handler_func)(int);
 
 static int handle_event(void);
 
 typedef struct fd_handler {
     int error;
-    remote_fd_t fd;
+    int fd;
     int mask;
     int ready_mask;
     handler_func *proc;
-    remote_client_data client_data;
+    void * client_data;
 
     struct fd_handler *next_fd;
 } fd_handler;
 
 typedef struct remote_event {
-    remote_fd_t fd;
+    int fd;
     event_handler_func *proc;
 } * remote_event_t;
 
@@ -38,7 +38,7 @@ static struct {
     int num_fds;
 } remote_notifier;
 
-void create_fd_handler(remote_fd_t fd, int mask, handler_func *proc, remote_client_data client_data) 
+void create_fd_handler(int fd, int mask, handler_func *proc, void * client_data) 
 {
     fd_handler *fd_ptr;
 
@@ -76,7 +76,51 @@ void create_fd_handler(remote_fd_t fd, int mask, handler_func *proc, remote_clie
     fd_ptr->mask = mask;
 }
 
-static int handle_fd_event(remote_fd_t event_fd_desc) {
+void delete_fd_handler(int fd)
+{
+  int i;
+  fd_handler *file_ptr, *prev_ptr = NULL;
+
+  for (file_ptr = remote_notifier.first_fd_handler; file_ptr != NULL;
+       file_ptr = file_ptr->next_fd)
+    if (file_ptr->fd == fd) break;
+
+  if (file_ptr == NULL) return;
+
+  if (file_ptr->mask & remote_READABLE)
+    FD_CLR(fd, &remote_notifier.check_masks[0]);
+  if (file_ptr->mask & remote_WRITABLE)
+    FD_CLR(fd, &remote_notifier.check_masks[1]);
+  if (file_ptr->mask & remote_EXCEPTION)
+    FD_CLR(fd, &remote_notifier.check_masks[2]);
+
+  if ((fd + 1) == remote_notifier.num_fds) {
+    remote_notifier.num_fds--;
+    for (i = remote_notifier.num_fds; i; i--) {
+      if (FD_ISSET(i - 1, &remote_notifier.check_masks[0]) ||
+          FD_ISSET(i - 1, &remote_notifier.check_masks[1]) ||
+          FD_ISSET(i - 1, &remote_notifier.check_masks[2]))
+        break;
+    }
+    remote_notifier.num_fds = i;
+  }
+
+  file_ptr->mask = 0;
+
+  /* Get rid of the file handler in the file handler list.  */
+  if (file_ptr == remote_notifier.first_fd_handler)
+    remote_notifier.first_fd_handler = file_ptr->next_fd;
+  else {
+    for (prev_ptr = remote_notifier.first_fd_handler;
+         prev_ptr->next_fd != file_ptr; prev_ptr = prev_ptr->next_fd)
+      ;
+    prev_ptr->next_fd = file_ptr->next_fd;
+  }
+
+  free(file_ptr);
+}
+
+static int handle_fd_event(int event_fd_desc) {
     fd_handler *fd_ptr;
     int mask;
 
@@ -108,7 +152,7 @@ static int handle_fd_event(remote_fd_t event_fd_desc) {
     return 0;
 }
 
-static remote_event *create_fd_event(remote_fd_t fd)
+static remote_event *create_fd_event(int fd)
 {
     remote_event *fd_event_ptr;
 
@@ -123,7 +167,7 @@ static void remote_event_free(struct remote_event *event)
     free(event); 
 }
 
-static void event_initialize()
+void event_initialize()
 {
     event_queue = QUEUE_alloc(remote_event_t, remote_event_free);
 }
@@ -133,7 +177,7 @@ static int handle_event(void)
     if (!QUEUE_is_empty(remote_event_t, event_queue)) {
         remote_event *event_ptr = QUEUE_deque(remote_event_t, event_queue);
         event_handler_func *proc = event_ptr->proc;
-        remote_fd_t fd = event_ptr->fd;
+        int fd = event_ptr->fd;
 
         remote_event_free(event_ptr);
 

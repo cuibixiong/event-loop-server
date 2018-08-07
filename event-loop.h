@@ -3,7 +3,9 @@
 
 #include "remote.h"
 
-typedef int (*handler_func_ptr) (int, remote_client_data);
+typedef int (*handler_func) (int, void *);
+
+extern void create_fd_handler(int fd, int mask, handler_func *proc, void * client_data);
 
 #endif
 
