@@ -19,8 +19,8 @@ main (int argc, char *argv[])
 
 	remote_prepare (port);
 
-	initialize_async_io ();
-	initialize_event_loop ();
+	//initialize_async_io ();
+	event_initialize();
 
 	while (1)
 	{
@@ -36,7 +36,7 @@ process_serial_event (void)
 }
 
 int
-handle_serial_event (int err, remote_client_data client_data)
+handle_serial_event (int err, void *client_data)
 {
   /* Really handle it.  */
   if (process_serial_event () < 0)
